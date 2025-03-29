@@ -39,25 +39,18 @@ class MANN(nn.Module):
 
         # Step 1: Concatenate the full (support & query) set of labels and images
 
-        # print(input_labels.shape)
-        input_labels[:, -1, :, :] = 0
-        # print(input_labels)
-        images_batch = input_images.flatten(1,2)
-        labels_batch = input_labels.flatten(1,2)
-
-        #concatenate labels and images
-        input = torch.cat((images_batch, labels_batch), dim=-1)
+        input = torch.cat([input_images, input_labels], dim=-1)
 
         # print(input.shape)
 
         # Step 2: Zero out the labels from the concatenated corresponding to the query set
-
-        # labels_batch.zero_()
+        input[:, -1, :, 784:] = torch.zeros_like(input_labels)[:, -1]
 
         # Step 3: Pass the concatenated set sequentially to the memory-augmented network
-
+        support = input.reshape(input.shape[0], input.shape[1] * input.shape[2], input.shape[-1]).float()
+        
         # output of LSTM : output, (h_n, c_n)
-        pred, _ = self.layer1(input)
+        pred, _ = self.layer1(support)
         pred, _ = self.layer2(pred)
 
         # Step 3: Return the predictions with [B, K+1, N, N] shape
@@ -88,7 +81,7 @@ class MANN(nn.Module):
         ### START CODE HERE ###
 
         # Step 1: extract the predictions for the query set
-        predictions = preds[:, -1].reshape(-1, preds.shape[-1])
+        predictions = preds[:, -1].reshape(-1, self.num_classes)
         # print(predictions.shape)
 
         # Step 2: extract the true labels for the query set and reverse the one hot-encoding  
